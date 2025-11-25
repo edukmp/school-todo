@@ -10,18 +10,24 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
+import { AuthProvider } from '@/context/AuthContext';
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <TaskProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </TaskProvider>
+    <AuthProvider>
+      <TaskProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </TaskProvider>
+    </AuthProvider>
   );
 }
+
