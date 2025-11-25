@@ -17,7 +17,7 @@ import { useRouter } from 'expo-router';
 export default function ListsScreen() {
   const { categories, isLoading } = useTasks();
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   if (isLoading) {
     return (
@@ -31,18 +31,23 @@ export default function ListsScreen() {
     router.push(`/task-list/${categoryId}` as any);
   };
 
-  // Responsive Layout Logic
+  // Responsive Layout Logic with landscape detection
+  const isLandscape = width > height;
   const isTablet = width >= 768;
   const isDesktop = width >= 1024;
 
-  const numColumns = isDesktop ? 4 : isTablet ? 3 : 2;
+  // Determine number of columns
+  let numColumns = 2; // Default for portrait mobile
+  if (isDesktop) {
+    numColumns = 4;
+  } else if (isTablet) {
+    numColumns = 3;
+  } else if (isLandscape) {
+    numColumns = 3; // 3 columns in landscape on mobile
+  }
+
   const containerPadding = 16;
   const gap = 12;
-
-  // Calculate available width for cards
-  // Total width - container padding (left + right) - total gap width
-  const availableWidth = width - (containerPadding * 2) - (gap * (numColumns - 1));
-  const cardWidth = availableWidth / numColumns;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -67,11 +72,16 @@ export default function ListsScreen() {
           contentContainerStyle={[styles.gridContainer, { paddingHorizontal: containerPadding }]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.grid, { gap }]}>
+          <View style={[styles.grid, { gap, justifyContent: 'flex-start' }]}>
             {categories.map((category, index) => (
               <TouchableOpacity
                 key={category.id}
-                style={[styles.categoryCard, { width: cardWidth }]}
+                style={[
+                  styles.categoryCard,
+                  {
+                    width: numColumns === 2 ? '48%' : numColumns === 3 ? '31.5%' : '23%',
+                  }
+                ]}
                 onPress={() => handleCategoryPress(category.id)}
                 activeOpacity={0.7}
               >
