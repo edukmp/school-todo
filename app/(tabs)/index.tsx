@@ -59,6 +59,12 @@ export default function ListsScreen() {
           <TouchableOpacity style={styles.menuButton}>
             <IconSymbol name="line.horizontal.3" size={24} color="#000" />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => router.push('/settings')}
+          >
+            <IconSymbol name="gearshape" size={24} color="#000" />
+          </TouchableOpacity>
         </View>
 
         {/* Title */}
@@ -119,6 +125,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 16,
@@ -127,6 +136,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     justifyContent: 'center',
+  },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   titleContainer: {
     paddingHorizontal: 24,

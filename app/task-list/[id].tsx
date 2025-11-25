@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTasks } from '@/context/TaskContext';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { Task } from '@/types/task';
 
 export default function TaskListScreen() {
@@ -36,11 +36,40 @@ export default function TaskListScreen() {
     const renderTask = (task: Task) => {
         const taskCategory = categories.find(c => c.id === task.category);
 
+        // Determine dot color based on task status
+        const getDotColor = () => {
+            if (task.completed) {
+                return '#54E69D'; // Green - completed
+            }
+            if (task.status === 'late') {
+                return '#FF5757'; // Red - expired
+            }
+
+            // Calculate time remaining if we have a date
+            if (task.date) {
+                try {
+                    const taskDate = new Date(task.date);
+                    const now = new Date();
+                    const hoursRemaining = (taskDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+                    if (hoursRemaining < 24) {
+                        return '#00D4FF'; // Cyan - less than 24 hours
+                    } else {
+                        return '#FF9500'; // Orange - more than 24 hours
+                    }
+                } catch (e) {
+                    return '#FF9500'; // Default to orange if date parsing fails
+                }
+            }
+
+            return '#FF9500'; // Default orange for tasks without date
+        };
+
         return (
             <TouchableOpacity
                 key={task.id}
                 style={styles.taskItem}
-                onPress={() => toggleTask(task.id)}
+                onPress={() => router.push(`/task-detail/${task.id}` as any)}
                 activeOpacity={0.7}
             >
                 {/* Category Icon */}
@@ -66,17 +95,13 @@ export default function TaskListScreen() {
                     )}
                 </View>
 
-                <TouchableOpacity
+                {/* Status Dot */}
+                <View
                     style={[
-                        styles.checkbox,
-                        task.completed && styles.checkboxCompleted
+                        styles.statusDot,
+                        { backgroundColor: getDotColor() }
                     ]}
-                    onPress={() => toggleTask(task.id)}
-                >
-                    {task.completed && (
-                        <IconSymbol name="checkmark" size={16} color="#FFF" />
-                    )}
-                </TouchableOpacity>
+                />
             </TouchableOpacity>
         );
     };
@@ -94,6 +119,12 @@ export default function TaskListScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <Stack.Screen
+                options={{
+                    title: category?.name || 'Tasks',
+                    headerShown: false,
+                }}
+            />
             <StatusBar barStyle="light-content" />
 
             <View style={[styles.contentWrapper, { maxWidth: isTablet ? 800 : '100%', alignSelf: 'center', width: '100%' }]}>
@@ -258,19 +289,11 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#FF5757',
     },
-    checkbox: {
-        width: 24,
-        height: 24,
+    statusDot: {
+        width: 12,
+        height: 12,
         borderRadius: 6,
-        borderWidth: 2,
-        borderColor: '#D1D1D6',
-        justifyContent: 'center',
-        alignItems: 'center',
         marginLeft: 12,
-    },
-    checkboxCompleted: {
-        backgroundColor: '#5B9EF8',
-        borderColor: '#5B9EF8',
     },
     fab: {
         position: 'absolute',
