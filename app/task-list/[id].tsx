@@ -7,6 +7,7 @@ import {
     ScrollView,
     SafeAreaView,
     StatusBar,
+    useWindowDimensions,
 } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTasks } from '@/context/TaskContext';
@@ -18,6 +19,7 @@ export default function TaskListScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const categoryId = params.id as string;
+    const { width } = useWindowDimensions();
 
     const category = categories.find(c => c.id === categoryId);
     const categoryTasks = categoryId === 'all'
@@ -28,6 +30,8 @@ export default function TaskListScreen() {
     const lateTasks = categoryTasks.filter(t => t.status === 'late');
     const todayTasks = categoryTasks.filter(t => t.status === 'today');
     const doneTasks = categoryTasks.filter(t => t.status === 'done');
+
+    const isTablet = width >= 768;
 
     const renderTask = (task: Task) => {
         const taskCategory = categories.find(c => c.id === task.category);
@@ -92,50 +96,52 @@ export default function TaskListScreen() {
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" />
 
-            {/* Header */}
-            <View style={[styles.header, { backgroundColor: category?.color || '#5B9EF8' }]}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                >
-                    <IconSymbol name="chevron.left" size={24} color="#FFF" />
-                </TouchableOpacity>
+            <View style={[styles.contentWrapper, { maxWidth: isTablet ? 800 : '100%', alignSelf: 'center', width: '100%' }]}>
+                {/* Header */}
+                <View style={[styles.header, { backgroundColor: category?.color || '#5B9EF8' }]}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => router.back()}
+                    >
+                        <IconSymbol name="chevron.left" size={24} color="#FFF" />
+                    </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuButton}>
-                    <IconSymbol name="ellipsis" size={24} color="#FFF" />
-                </TouchableOpacity>
-            </View>
-
-            {/* Category Info */}
-            <View style={[styles.categoryInfo, { backgroundColor: category?.color || '#5B9EF8' }]}>
-                <View style={styles.categoryIconContainer}>
-                    <IconSymbol name={category?.icon as any || 'list.bullet'} size={28} color="#FFF" />
+                    <TouchableOpacity style={styles.menuButton}>
+                        <IconSymbol name="ellipsis" size={24} color="#FFF" />
+                    </TouchableOpacity>
                 </View>
-                <Text style={styles.categoryTitle}>{category?.name || 'All'}</Text>
-                <Text style={styles.categoryTaskCount}>
-                    {categoryTasks.length} Task{categoryTasks.length !== 1 ? 's' : ''}
-                </Text>
+
+                {/* Category Info */}
+                <View style={[styles.categoryInfo, { backgroundColor: category?.color || '#5B9EF8' }]}>
+                    <View style={styles.categoryIconContainer}>
+                        <IconSymbol name={category?.icon as any || 'list.bullet'} size={28} color="#FFF" />
+                    </View>
+                    <Text style={styles.categoryTitle}>{category?.name || 'All'}</Text>
+                    <Text style={styles.categoryTaskCount}>
+                        {categoryTasks.length} Task{categoryTasks.length !== 1 ? 's' : ''}
+                    </Text>
+                </View>
+
+                {/* Task List */}
+                <ScrollView
+                    style={styles.taskList}
+                    contentContainerStyle={styles.taskListContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {renderSection('Late', lateTasks, '#FF5757')}
+                    {renderSection('Today', todayTasks, '#000')}
+                    {renderSection('Done', doneTasks, '#8E8E93')}
+                </ScrollView>
+
+                {/* Floating Add Button */}
+                <TouchableOpacity
+                    style={[styles.fab, { backgroundColor: category?.color || '#5B9EF8' }]}
+                    onPress={() => router.push('/modal')}
+                    activeOpacity={0.8}
+                >
+                    <IconSymbol name="plus" size={28} color="#FFF" />
+                </TouchableOpacity>
             </View>
-
-            {/* Task List */}
-            <ScrollView
-                style={styles.taskList}
-                contentContainerStyle={styles.taskListContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {renderSection('Late', lateTasks, '#FF5757')}
-                {renderSection('Today', todayTasks, '#000')}
-                {renderSection('Done', doneTasks, '#8E8E93')}
-            </ScrollView>
-
-            {/* Floating Add Button */}
-            <TouchableOpacity
-                style={[styles.fab, { backgroundColor: category?.color || '#5B9EF8' }]}
-                onPress={() => router.push('/modal')}
-                activeOpacity={0.8}
-            >
-                <IconSymbol name="plus" size={28} color="#FFF" />
-            </TouchableOpacity>
         </SafeAreaView>
     );
 }
@@ -144,6 +150,9 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F8F9FA',
+    },
+    contentWrapper: {
+        flex: 1,
     },
     header: {
         flexDirection: 'row',

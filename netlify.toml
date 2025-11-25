@@ -1,0 +1,13 @@
+# SchoolToDoApp - Expo Web Deployment Configuration
+
+[build]
+  command = "npm run export"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

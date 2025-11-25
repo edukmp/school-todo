@@ -1,127 +1,162 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Task, Category } from '@/types/task';
+import { supabase } from '@/lib/supabase';
 
+/**
+ * Context type describing the shape of the task store.
+ */
 interface TaskContextType {
     tasks: Task[];
     categories: Category[];
-    addTask: (task: Omit<Task, 'id'>) => void;
-    toggleTask: (id: string) => void;
-    deleteTask: (id: string) => void;
+    addTask: (task: Omit<Task, 'id'>) => Promise<void>;
+    toggleTask: (id: string) => Promise<void>;
+    deleteTask: (id: string) => Promise<void>;
     getTasksByCategory: (categoryId: string) => Task[];
+    isLoading: boolean;
 }
 
+// Create the context – it will be provided by <TaskProvider>.
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
-// Sample data
-const initialCategories: Category[] = [
-    { id: 'all', name: 'All', icon: 'list.bullet', color: '#5B9EF8', taskCount: 23 },
-    { id: 'work', name: 'Work', icon: 'briefcase.fill', color: '#FF9F43', taskCount: 14 },
-    { id: 'music', name: 'Music', icon: 'headphones', color: '#FF6B9D', taskCount: 6 },
-    { id: 'travel', name: 'Travel', icon: 'airplane', color: '#54E69D', taskCount: 1 },
-    { id: 'study', name: 'Study', icon: 'book.fill', color: '#A084DC', taskCount: 2 },
-    { id: 'home', name: 'Home', icon: 'house.fill', color: '#FF5757', taskCount: 14 },
+/**
+ * Base categories – the UI shows a static list with a dynamic `taskCount`.
+ * `taskCount` is calculated from the current tasks.
+ */
+const baseCategories: Omit<Category, 'taskCount'>[] = [
+    { id: 'all', name: 'All', icon: 'list.bullet', color: '#5B9EF8' },
+    { id: 'work', name: 'Work', icon: 'briefcase.fill', color: '#FF9F47' },
+    { id: 'music', name: 'Music', icon: 'headphones', color: '#FF7EB6' },
+    { id: 'travel', name: 'Travel', icon: 'airplane', color: '#54E69D' },
+    { id: 'study', name: 'Study', icon: 'book.fill', color: '#9F7AEA' },
+    { id: 'home', name: 'Home', icon: 'house.fill', color: '#FF5757' },
 ];
 
-const initialTasks: Task[] = [
-    {
-        id: '1',
-        title: 'Call Max',
-        date: '2025-04-29',
-        time: '20:15',
-        category: 'all',
-        completed: false,
-        status: 'late',
-    },
-    {
-        id: '2',
-        title: 'Practice piano',
-        time: '16:00',
-        category: 'music',
-        completed: false,
-        status: 'today',
-    },
-    {
-        id: '3',
-        title: 'Learn Spanish',
-        time: '17:00',
-        category: 'study',
-        completed: false,
-        status: 'today',
-    },
-    {
-        id: '4',
-        title: 'Finalize presentation',
-        time: '14:00',
-        category: 'work',
-        completed: true,
-        status: 'done',
-    },
-];
-
+/**
+ * Provider component that holds the task state and exposes helper functions.
+ */
 export function TaskProvider({ children }: { children: ReactNode }) {
-    const [tasks, setTasks] = useState<Task[]>(initialTasks);
-    const [categories, setCategories] = useState<Category[]>(initialCategories);
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    const addTask = (task: Omit<Task, 'id'>) => {
-        const newTask = {
-            ...task,
-            id: Date.now().toString(),
-        };
-        setTasks([...tasks, newTask]);
-
-        // Update category count
-        setCategories(categories.map(cat =>
-            cat.id === task.category
-                ? { ...cat, taskCount: cat.taskCount + 1 }
-                : cat
-        ));
+    /** Fetch tasks from Supabase */
+    const fetchTasks = async () => {
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('todostb_tasks')
+            .select('*');
+        if (error) {
+            console.error('Error fetching tasks:', error);
+        } else if (data) {
+            setTasks(data as Task[]);
+        }
+        setIsLoading(false);
     };
 
-    const toggleTask = (id: string) => {
-        setTasks(tasks.map(task =>
-            task.id === id
-                ? { ...task, completed: !task.completed, status: task.completed ? 'today' : 'done' }
-                : task
-        ));
+    // Load tasks once on mount
+    useEffect(() => {
+        fetchTasks();
+    }, []);
+
+    /** Add a new task – optimistic UI update */
+    const addTask = async (newTask: Omit<Task, 'id'>) => {
+        const tempId = Math.random().toString(36).substring(2, 15);
+        const optimisticTask: Task = { ...newTask, id: tempId } as Task;
+        setTasks(prev => [optimisticTask, ...prev]);
+        try {
+            const { data, error } = await supabase
+                .from('todostb_tasks')
+                .insert([newTask])
+                .select()
+                .single();
+            if (error) throw error;
+            if (data) {
+                setTasks(prev => prev.map(t => (t.id === tempId ? (data as Task) : t)));
+            }
+        } catch (err) {
+            console.error('Error adding task:', err);
+            fetchTasks();
+        }
     };
 
-    const deleteTask = (id: string) => {
+    /** Toggle a task's completed status */
+    const toggleTask = async (id: string) => {
         const task = tasks.find(t => t.id === id);
-        setTasks(tasks.filter(t => t.id !== id));
-
-        if (task) {
-            setCategories(categories.map(cat =>
-                cat.id === task.category
-                    ? { ...cat, taskCount: cat.taskCount - 1 }
-                    : cat
-            ));
+        if (!task) return;
+        const newCompleted = !task.completed;
+        const newStatus = newCompleted ? 'done' : 'today';
+        setTasks(prev =>
+            prev.map(t =>
+                t.id === id ? { ...t, completed: newCompleted, status: newStatus } : t,
+            ),
+        );
+        try {
+            const { error } = await supabase
+                .from('todostb_tasks')
+                .update({ completed: newCompleted, status: newStatus })
+                .eq('id', id);
+            if (error) throw error;
+        } catch (err) {
+            console.error('Error toggling task:', err);
+            setTasks(prev =>
+                prev.map(t =>
+                    t.id === id ? { ...t, completed: task.completed, status: task.status } : t,
+                ),
+            );
         }
     };
 
-    const getTasksByCategory = (categoryId: string) => {
-        if (categoryId === 'all') {
-            return tasks;
+    /** Delete a task */
+    const deleteTask = async (id: string) => {
+        const previous = [...tasks];
+        setTasks(prev => prev.filter(t => t.id !== id));
+        try {
+            const { error } = await supabase
+                .from('todostb_tasks')
+                .delete()
+                .eq('id', id);
+            if (error) throw error;
+        } catch (err) {
+            console.error('Error deleting task:', err);
+            setTasks(previous);
         }
+    };
+
+    /** Helper to filter tasks by category */
+    const getTasksByCategory = (categoryId: string): Task[] => {
+        if (categoryId === 'all') return tasks;
         return tasks.filter(task => task.category === categoryId);
     };
 
+    // Compute categories with live task counts
+    const categories: Category[] = baseCategories.map(cat => {
+        const count =
+            cat.id === 'all'
+                ? tasks.length
+                : tasks.filter(t => t.category === cat.id).length;
+        return { ...cat, taskCount: count };
+    });
+
     return (
-        <TaskContext.Provider value={{
-            tasks,
-            categories,
-            addTask,
-            toggleTask,
-            deleteTask,
-            getTasksByCategory,
-        }}>
+        <TaskContext.Provider
+            value={{
+                tasks,
+                categories,
+                addTask,
+                toggleTask,
+                deleteTask,
+                getTasksByCategory,
+                isLoading,
+            }}
+        >
             {children}
         </TaskContext.Provider>
     );
 }
 
+/** Hook for consuming the task context */
 export function useTasks() {
     const context = useContext(TaskContext);
-    if (context === undefined) {
+    if (!context) {
         throw new Error('useTasks must be used within a TaskProvider');
     }
     return context;

@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
   Modal,
+  useWindowDimensions,
 } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTasks } from '@/context/TaskContext';
@@ -20,6 +21,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 export default function NewTaskModal() {
   const { addTask, categories } = useTasks();
   const router = useRouter();
+  const { width } = useWindowDimensions();
 
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(new Date());
@@ -29,6 +31,8 @@ export default function NewTaskModal() {
   const [isNoteVisible, setIsNoteVisible] = useState(false);
   const [category, setCategory] = useState('all');
   const [isCategoryVisible, setIsCategoryVisible] = useState(false);
+
+  const isTablet = width >= 768;
 
   const handleCreate = () => {
     if (title.trim()) {
@@ -80,155 +84,157 @@ export default function NewTaskModal() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>New task</Text>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => router.back()}
-          >
-            <IconSymbol name="xmark" size={20} color="#000" />
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Title Input */}
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>What are you planning?</Text>
-            <TextInput
-              style={styles.titleInput}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Task title"
-              placeholderTextColor="#C7C7CC"
-              autoFocus
-            />
+        <View style={[styles.contentWrapper, { maxWidth: isTablet ? 600 : '100%', alignSelf: 'center', width: '100%' }]}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>New task</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => router.back()}
+            >
+              <IconSymbol name="xmark" size={20} color="#000" />
+            </TouchableOpacity>
           </View>
 
-          {/* Date/Time Selection */}
-          {Platform.OS === 'web' ? (
-            <View style={styles.dateInputContainer}>
-              <IconSymbol name="bell" size={20} color="#8E8E93" style={styles.inputIcon} />
-              {React.createElement('input', {
-                type: 'datetime-local',
-                value: new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16),
-                onChange: (e: any) => setDate(new Date(e.target.value)),
-                style: {
-                  flex: 1,
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  fontSize: '16px',
-                  fontFamily: 'inherit',
-                  outline: 'none',
-                  color: '#000',
-                  height: '100%',
-                }
-              })}
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.dateInputContainer}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <IconSymbol name="bell" size={20} color="#8E8E93" />
-              <Text style={styles.optionText}>
-                {formatDateTime(date)}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Note Input */}
-          <View>
-            <TouchableOpacity
-              style={styles.option}
-              onPress={() => setIsNoteVisible(!isNoteVisible)}
-            >
-              <IconSymbol name="text.bubble" size={20} color="#8E8E93" />
-              <Text style={styles.optionText}>
-                {note ? 'Edit note' : 'Add note'}
-              </Text>
-            </TouchableOpacity>
-
-            {isNoteVisible && (
+          <ScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Title Input */}
+            <View style={styles.inputSection}>
+              <Text style={styles.label}>What are you planning?</Text>
               <TextInput
-                style={styles.noteInput}
-                value={note}
-                onChangeText={setNote}
-                placeholder="Add details..."
-                multiline
-                numberOfLines={3}
+                style={styles.titleInput}
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Task title"
+                placeholderTextColor="#C7C7CC"
+                autoFocus
               />
-            )}
-          </View>
+            </View>
 
-          {/* Category Selection */}
-          <View>
-            <TouchableOpacity
-              style={styles.option}
-              onPress={() => setIsCategoryVisible(!isCategoryVisible)}
-            >
-              <IconSymbol name="tag" size={20} color="#8E8E93" />
-              <View style={styles.categoryPreview}>
-                <Text style={styles.optionText}>Category</Text>
-                {selectedCategory && (
-                  <View style={[styles.selectedCategoryBadge, { backgroundColor: selectedCategory.color + '20' }]}>
-                    <Text style={[styles.selectedCategoryText, { color: selectedCategory.color }]}>
-                      {selectedCategory.name}
-                    </Text>
-                  </View>
-                )}
+            {/* Date/Time Selection */}
+            {Platform.OS === 'web' ? (
+              <View style={styles.dateInputContainer}>
+                <IconSymbol name="bell" size={20} color="#8E8E93" style={styles.inputIcon} />
+                {React.createElement('input', {
+                  type: 'datetime-local',
+                  value: new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, 16),
+                  onChange: (e: any) => setDate(new Date(e.target.value)),
+                  style: {
+                    flex: 1,
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    fontSize: '16px',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    color: '#000',
+                    height: '100%',
+                  }
+                })}
               </View>
-            </TouchableOpacity>
-
-            {isCategoryVisible && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.categoryList}
-                contentContainerStyle={styles.categoryListContent}
+            ) : (
+              <TouchableOpacity
+                style={styles.dateInputContainer}
+                onPress={() => setShowDatePicker(true)}
               >
-                {categories.map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[
-                      styles.categoryChip,
-                      category === cat.id && { backgroundColor: cat.color }
-                    ]}
-                    onPress={() => {
-                      setCategory(cat.id);
-                      setIsCategoryVisible(false);
-                    }}
-                  >
-                    <IconSymbol
-                      name={cat.icon as any}
-                      size={16}
-                      color={category === cat.id ? '#FFF' : cat.color}
-                    />
-                    <Text style={[
-                      styles.categoryChipText,
-                      category === cat.id && { color: '#FFF' }
-                    ]}>
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                <IconSymbol name="bell" size={20} color="#8E8E93" />
+                <Text style={styles.optionText}>
+                  {formatDateTime(date)}
+                </Text>
+              </TouchableOpacity>
             )}
-          </View>
 
-          {/* Create Button */}
-          <TouchableOpacity
-            style={[styles.createButton, !title.trim() && styles.createButtonDisabled]}
-            onPress={handleCreate}
-            disabled={!title.trim()}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.createButtonText}>Create</Text>
-          </TouchableOpacity>
-        </ScrollView>
+            {/* Note Input */}
+            <View>
+              <TouchableOpacity
+                style={styles.option}
+                onPress={() => setIsNoteVisible(!isNoteVisible)}
+              >
+                <IconSymbol name="text.bubble" size={20} color="#8E8E93" />
+                <Text style={styles.optionText}>
+                  {note ? 'Edit note' : 'Add note'}
+                </Text>
+              </TouchableOpacity>
+
+              {isNoteVisible && (
+                <TextInput
+                  style={styles.noteInput}
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder="Add details..."
+                  multiline
+                  numberOfLines={3}
+                />
+              )}
+            </View>
+
+            {/* Category Selection */}
+            <View>
+              <TouchableOpacity
+                style={styles.option}
+                onPress={() => setIsCategoryVisible(!isCategoryVisible)}
+              >
+                <IconSymbol name="tag" size={20} color="#8E8E93" />
+                <View style={styles.categoryPreview}>
+                  <Text style={styles.optionText}>Category</Text>
+                  {selectedCategory && (
+                    <View style={[styles.selectedCategoryBadge, { backgroundColor: selectedCategory.color + '20' }]}>
+                      <Text style={[styles.selectedCategoryText, { color: selectedCategory.color }]}>
+                        {selectedCategory.name}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {isCategoryVisible && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.categoryList}
+                  contentContainerStyle={styles.categoryListContent}
+                >
+                  {categories.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={[
+                        styles.categoryChip,
+                        category === cat.id && { backgroundColor: cat.color }
+                      ]}
+                      onPress={() => {
+                        setCategory(cat.id);
+                        setIsCategoryVisible(false);
+                      }}
+                    >
+                      <IconSymbol
+                        name={cat.icon as any}
+                        size={16}
+                        color={category === cat.id ? '#FFF' : cat.color}
+                      />
+                      <Text style={[
+                        styles.categoryChipText,
+                        category === cat.id && { color: '#FFF' }
+                      ]}>
+                        {cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
+            {/* Create Button */}
+            <TouchableOpacity
+              style={[styles.createButton, !title.trim() && styles.createButtonDisabled]}
+              onPress={handleCreate}
+              disabled={!title.trim()}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.createButtonText}>Create</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
       </KeyboardAvoidingView>
 
       {/* Date Pickers */}
@@ -258,6 +264,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   keyboardView: {
+    flex: 1,
+  },
+  contentWrapper: {
     flex: 1,
   },
   header: {
