@@ -38,6 +38,9 @@ const MAPPING = {
   'text.bubble': 'chat-bubble-outline',
   'tag': 'label',
   'gearshape': 'settings',
+  'pencil': 'edit',
+  'trash': 'delete',
+  'info.circle': 'info',
 } as IconMapping;
 
 /**

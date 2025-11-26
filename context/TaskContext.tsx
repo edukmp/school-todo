@@ -19,22 +19,17 @@ interface TaskContextType {
     deleteTask: (id: string) => Promise<void>;
     getTasksByCategory: (categoryId: string) => Task[];
     refreshBranding: () => Promise<void>;
+    refreshCategories: () => Promise<void>;
     isLoading: boolean;
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
-const baseCategories: Omit<Category, 'taskCount'>[] = [
-    { id: 'all', name: 'All', icon: 'list.bullet', color: '#5B9EF8' },
-    { id: 'work', name: 'Work', icon: 'briefcase.fill', color: '#FF9F47' },
-    { id: 'music', name: 'Music', icon: 'headphones', color: '#FF7EB6' },
-    { id: 'travel', name: 'Travel', icon: 'airplane', color: '#54E69D' },
-    { id: 'study', name: 'Study', icon: 'book.fill', color: '#9F7AEA' },
-    { id: 'home', name: 'Home', icon: 'house.fill', color: '#FF5757' },
-];
-
 export function TaskProvider({ children }: { children: ReactNode }) {
     const [tasks, setTasks] = useState<Task[]>([]);
+    const [baseCategories, setBaseCategories] = useState<Omit<Category, 'taskCount'>[]>([
+        { id: 'all', name: 'All', icon: 'list.bullet', color: '#5B9EF8' },
+    ]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [branding, setBranding] = useState<Branding>({
         name: 'School To-Do',
@@ -49,6 +44,21 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         if (error) console.error('Error fetching tasks:', error);
         else if (data) setTasks(data as Task[]);
         setIsLoading(false);
+    };
+
+    const fetchCategories = async () => {
+        const { data, error } = await supabase.from('categories').select('*');
+        if (error) {
+            console.error('Error fetching categories:', error);
+        } else if (data) {
+            const allCategory = { id: 'all', name: 'All', icon: 'list.bullet', color: '#5B9EF8' };
+            setBaseCategories([allCategory, ...data.map(cat => ({
+                id: cat.id,
+                name: cat.name,
+                icon: cat.icon,
+                color: cat.color,
+            }))]);
+        }
     };
 
     const fetchBranding = async () => {
@@ -71,6 +81,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         fetchTasks();
         fetchBranding();
+        fetchCategories();
     }, []);
 
     const addTask = async (newTask: Omit<Task, 'id'>) => {
@@ -78,7 +89,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         const optimisticTask: Task = { ...newTask, id: tempId } as Task;
         setTasks(prev => [optimisticTask, ...prev]);
 
-        // Schedule notification
         scheduleTaskNotification(optimisticTask);
 
         try {
@@ -146,6 +156,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
                 deleteTask,
                 getTasksByCategory,
                 refreshBranding: fetchBranding,
+                refreshCategories: fetchCategories,
                 isLoading,
             }}
         >
@@ -159,3 +170,4 @@ export function useTasks() {
     if (!context) throw new Error('useTasks must be used within a TaskProvider');
     return context;
 }
+
