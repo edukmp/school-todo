@@ -37,6 +37,7 @@ const MAPPING = {
   'bell': 'notifications',
   'text.bubble': 'chat-bubble-outline',
   'tag': 'label',
+  'gearshape': 'settings',
 } as IconMapping;
 
 /**

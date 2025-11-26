@@ -19,7 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 export default function SettingsScreen() {
     const router = useRouter();
-    const { categories } = useTasks();
+    const { categories, refreshBranding } = useTasks();
     const [activeTab, setActiveTab] = useState<'categories' | 'branding'>('categories');
 
     // Branding state
@@ -72,6 +72,7 @@ export default function SettingsScreen() {
                 primary_color: primaryColor,
             });
             if (error) throw error;
+            await refreshBranding();
             Alert.alert('Saved', 'Branding settings updated!');
         } catch (e) {
             console.error(e);

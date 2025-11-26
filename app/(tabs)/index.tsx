@@ -9,20 +9,21 @@ import {
   StatusBar,
   ActivityIndicator,
   useWindowDimensions,
+  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTasks } from '@/context/TaskContext';
 import { useRouter } from 'expo-router';
 
 export default function ListsScreen() {
-  const { categories, isLoading } = useTasks();
+  const { categories, isLoading, branding } = useTasks();
   const router = useRouter();
   const { width, height } = useWindowDimensions();
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#5B9EF8" />
+        <ActivityIndicator size="large" color={branding?.primaryColor || "#5B9EF8"} />
       </View>
     );
   }
@@ -67,9 +68,22 @@ export default function ListsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Title */}
+        {/* Branding Header */}
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>Lists</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+            {branding?.logoUrl ? (
+              <Image
+                source={{ uri: branding.logoUrl }}
+                style={{ width: 40, height: 40, resizeMode: 'contain' }}
+              />
+            ) : null}
+            <Text style={styles.title}>{branding?.name || 'Lists'}</Text>
+          </View>
+          {branding?.tagline ? (
+            <Text style={{ fontSize: 14, color: '#8E8E93', fontWeight: '500' }}>
+              {branding.tagline}
+            </Text>
+          ) : null}
         </View>
 
         {/* Categories Grid */}
@@ -106,7 +120,13 @@ export default function ListsScreen() {
 
       {/* Floating Add Button */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[
+          styles.fab,
+          {
+            backgroundColor: branding?.primaryColor || '#5B9EF8',
+            shadowColor: branding?.primaryColor || '#5B9EF8'
+          }
+        ]}
         onPress={() => router.push('/modal')}
         activeOpacity={0.8}
       >
